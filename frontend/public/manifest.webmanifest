@@ -1,0 +1,29 @@
+{
+  "id": "/php-shield-DRC/",
+  "name": "PHP-SHIELD RDC — Cyber Résilience",
+  "short_name": "PHP-SHIELD RDC",
+  "description": "Plateforme institutionnelle de sécurité des applications PHP.",
+  "lang": "fr-CD",
+  "start_url": "/php-shield-DRC/",
+  "scope": "/php-shield-DRC/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0b0d0f",
+  "theme_color": "#111315",
+  "categories": ["security", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/php-shield-DRC/assets/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/php-shield-DRC/assets/drc-government-emblem.png",
+      "sizes": "1280x1280",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

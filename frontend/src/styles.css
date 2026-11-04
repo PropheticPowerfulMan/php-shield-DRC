@@ -74,3 +74,41 @@ html[data-theme="light"] footer{color:#707a82}
 html[data-theme="light"] footer i{color:#967923}
 html[data-theme="light"] .scrim{background:#17202a66}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+
+/* Install flow: a native prompt where available, a clear device guide elsewhere. */
+.welcome-actions{display:flex;align-items:center;gap:8px}
+.install-button{min-height:34px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 12px;border:1px solid #6e5b27;border-radius:4px;background:#282315;color:#e7cc72;font-size:9px;font-weight:700;letter-spacing:.25px;white-space:nowrap;transition:background .15s,border-color .15s,transform .15s}
+.install-button:hover:not(:disabled){background:#352d19;border-color:#b18d32;transform:translateY(-1px)}
+.install-button:focus-visible,.install-close:focus-visible,.install-done:focus-visible{outline:2px solid #d6ae35;outline-offset:3px}
+.install-button.is-installed{background:#1e2d24;border-color:#385b43;color:#9bc9a8;cursor:default}
+.install-backdrop{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;background:#050709c9;backdrop-filter:blur(7px)}
+.install-dialog{position:relative;width:min(100%,460px);max-height:min(90vh,760px);overflow:auto;padding:29px;background:#151719;border:1px solid #3a3a33;border-top:2px solid #b18d32;border-radius:7px;box-shadow:0 24px 80px #0009;color:#e4e6e8}
+.install-close{position:absolute;right:15px;top:15px;width:32px;height:32px;display:grid;place-items:center;border:1px solid #34393d;border-radius:4px;background:#1c1f21;color:#aeb3b6}
+.install-emblem{width:58px;height:58px;padding:4px;margin-bottom:16px;border:1px solid #4b432e;border-radius:50%;background:#f2f0e8}
+.install-emblem img{width:100%;height:100%;object-fit:contain;border-radius:50%}
+.install-eyebrow{display:flex;align-items:center;gap:7px;color:#c6a94d;font-size:8px;font-weight:700;letter-spacing:1.2px}
+.install-dialog h2{margin:9px 0 7px;font:700 21px Manrope;color:#f0f0ed;letter-spacing:-.35px}
+.install-dialog>p{font-size:11px;line-height:1.6;color:#9ba1a5}
+.install-dialog ol{list-style:none;counter-reset:install-steps;margin:18px 0;padding:0;display:grid;gap:10px}
+.install-dialog li{counter-increment:install-steps;position:relative;min-height:48px;padding:9px 10px 9px 43px;border:1px solid #2e3337;border-radius:4px;background:#191c1e}
+.install-dialog li::before{content:counter(install-steps,decimal-leading-zero);position:absolute;left:11px;top:12px;color:#d1b451;font:700 10px Manrope}
+.install-dialog li b{display:block;font-size:10px;color:#dfe1e2}
+.install-dialog li span{display:block;margin-top:3px;font-size:9px;line-height:1.45;color:#858c91}
+.install-note{display:flex;align-items:flex-start;gap:8px;padding:10px;border:1px solid #31463a;border-radius:4px;background:#19231d;color:#8fbd9c;font-size:9px;line-height:1.5}
+.install-note svg{flex:0 0 auto}
+.install-done{width:100%;min-height:36px;margin-top:14px;border:1px solid #8f742b;border-radius:4px;background:#b18d32;color:#121313;font-size:10px;font-weight:700}
+.install-done:hover{background:#c4a64b}
+html[data-theme="light"] .install-button{background:#fbf5e4;border-color:#ddc984;color:#735b15}
+html[data-theme="light"] .install-button:hover:not(:disabled){background:#f6edcf;border-color:#b18d32}
+html[data-theme="light"] .install-button.is-installed{background:#eaf4ec;border-color:#b9d5bf;color:#39704a}
+html[data-theme="light"] .install-dialog{background:#fff;border-color:#e0d9c5;color:#293138;box-shadow:0 24px 80px #17202a33}
+html[data-theme="light"] .install-close{background:#f4f5f6;border-color:#dfe3e7;color:#58636b}
+html[data-theme="light"] .install-dialog h2{color:#20262c}
+html[data-theme="light"] .install-dialog>p{color:#68737c}
+html[data-theme="light"] .install-dialog li{background:#f8f9fa;border-color:#e4e7e9}
+html[data-theme="light"] .install-dialog li b{color:#303940}
+html[data-theme="light"] .install-dialog li span{color:#6f7982}
+html[data-theme="light"] .install-note{background:#eef5f0;border-color:#cddfd1;color:#4d7859}
+html[data-theme="light"] .install-done{color:#151515}
+@media(max-width:700px){.welcome-actions{width:100%;flex-wrap:wrap}.welcome-actions .date{align-self:auto}}
+@media(max-width:480px){.welcome-actions{align-items:flex-start;flex-direction:column;gap:8px}.install-button{min-height:36px}.install-dialog{padding:23px 18px}.install-dialog h2{font-size:19px}}

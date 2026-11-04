@@ -1,5 +1,6 @@
 import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react'
-import { Activity, AlertTriangle, AppWindow, Bell, Check, ChevronDown, CircleHelp, Download, FileBarChart, Gauge, Globe2, HardDrive, LockKeyhole, LogOut, Menu, Moon, Search, Settings, Shield, ShieldCheck, Smartphone, Sun, Users, X, Eye, EyeOff } from 'lucide-react'
+import { Activity, AlertTriangle, AppWindow, Bell, Check, ChevronDown, CircleHelp, Download, FileBarChart, FileSpreadsheet, FileText, Gauge, Globe2, HardDrive, LockKeyhole, LogOut, Menu, Moon, Search, Settings, Shield, ShieldCheck, Smartphone, Sun, Users, X, Eye, EyeOff } from 'lucide-react'
+import { downloadPostureExcel, downloadPosturePdf, type ReportData } from './reportExports'
 
 const nav = [
   { title: 'PILOTAGE', links: [['Vue d’ensemble', Gauge], ['Applications', AppWindow], ['Infrastructure', HardDrive]] },
@@ -51,7 +52,7 @@ export default function App(){
   const searchRef=useRef<HTMLInputElement>(null)
   const apiRoot=`${import.meta.env.BASE_URL}api/v1`
 
-  useEffect(()=>{document.documentElement.dataset.theme=theme;document.querySelector<HTMLMetaElement>('#theme-color')?.setAttribute('content',theme==='light'?'#e9e6dd':'#111315');localStorage.setItem('php-shield-theme',theme)},[theme])
+  useEffect(()=>{document.documentElement.dataset.theme=theme;document.querySelector<HTMLMetaElement>('#theme-color')?.setAttribute('content',theme==='light'?'#e1ded3':'#111315');localStorage.setItem('php-shield-theme',theme)},[theme])
   useEffect(()=>{localStorage.setItem('php-shield-sidebar',collapsed?'collapsed':'expanded')},[collapsed])
   useEffect(()=>{
     fetch(`${apiRoot}/auth/me`,{credentials:'include'}).then(async r=>{if(r.ok){setOnline(true);setUser(await r.json())}else if(r.status===401){setOnline(true)}else throw new Error('API indisponible')}).catch(()=>setOnline(false)).finally(()=>setAuthReady(true))
@@ -93,13 +94,37 @@ export default function App(){
           <div className="section-title vuln-title"><div><h2>Vulnérabilités ouvertes</h2><p>Constats suivis par niveau de sévérité</p></div><button className="text-link" onClick={()=>selectPage('Vulnérabilités')}>Voir le registre <span>→</span></button></div>
           <div className="severity">{[['Critique',dashboard.vulnerabilities.critical,'red'],['Élevée',dashboard.vulnerabilities.high,'orange'],['Modérée',dashboard.vulnerabilities.moderate,'gold'],['Faible',dashboard.vulnerabilities.low,'blue']].map(([n,v,c])=><div className="sev" key={n}><div className="sev-label"><span className={`sev-dot ${c}`}/>{n}<b>{v}</b></div><div className="bar"><span className={String(c)} style={{width:`${vulnerabilitiesTotal(dashboard)?Math.round(Number(v)/vulnerabilitiesTotal(dashboard)*100):0}%`}}/></div></div>)}</div>
           <div className="lower analytics-grid"><div className="panel chart-panel"><div className="panel-head"><div><h3>Évolution des audits</h3><p>Audits clôturés par mois · période de 6 mois</p></div><span className="chart-unit">AUDITS / MOIS</span></div>{preview?<AuditTrendChart/>:<div className="chart-empty"><Activity size={22}/><b>Historique non disponible</b><span>L’API doit fournir les séries temporelles pour tracer une tendance fiable.</span></div>}<div className="panel-foot"><span><i className={preview?'':'green-bg'}/>{preview?'SÉRIE DE DÉMONSTRATION':'HISTORIQUE API'}</span><span>{preview?'96 audits simulés':`${dashboard.audited_applications} audits réalisés`}</span></div></div><div className="panel chart-panel"><div className="panel-head"><div><h3>Répartition des constats</h3><p>Part de chaque niveau de sévérité</p></div><span className="chart-unit">{vulnerabilitiesTotal(dashboard)} CONSTATS</span></div><SeverityChart data={dashboard.vulnerabilities}/><div className="panel-foot"><span><i className={preview?'':'green-bg'}/>{preview?'JEU DE DONNÉES SIMULÉ':'DONNÉES API'}</span><span>Critique → faible</span></div></div></div>
-        </>:<ModulePage name={active} description={descriptions[active]||'Cette section sera disponible dans une prochaine phase.'} onBack={()=>selectPage('Vue d’ensemble')}/>}
+        </>:active==='Rapports'?<ReportsPage data={dashboard} demo={preview}/>:<ModulePage name={active} description={descriptions[active]||'Cette section sera disponible dans une prochaine phase.'} onBack={()=>selectPage('Vue d’ensemble')}/>}
         <footer><span>PHP-SHIELD RDC <i>·</i> Produit proposé pour évaluation technique</span><span><Shield size={13}/> ENVIRONNEMENT NON PRODUCTION</span></footer>
       </div>
     </main>
     {installHelp&&<InstallDialog onClose={()=>setInstallHelp(false)}/>}
     {helpOpen&&<InfoDialog title="Centre d’aide" onClose={()=>setHelpOpen(false)}><p>PHP-SHIELD RDC est une plateforme proposée pour l’évaluation technique. Les données de sécurité nécessitent une API active et un compte créé par l’administrateur.</p><p>Sur GitHub Pages, seul l’aperçu statique est disponible. Pour créer le premier compte dans l’environnement serveur, exécutez le processus sécurisé de bootstrap administrateur.</p><div className="install-note"><ShieldCheck size={16}/><span>Aucun scan n’est lancé depuis cette page et aucun résultat fictif n’est présenté.</span></div></InfoDialog>}
   </div>
+}
+
+function ReportsPage({data,demo}:{data:ReportData;demo:boolean}){
+  const [busy,setBusy]=useState<'pdf'|'excel'|null>(null),[message,setMessage]=useState('')
+  const findings=data.vulnerabilities.critical+data.vulnerabilities.high+data.vulnerabilities.moderate+data.vulnerabilities.low
+  const coverage=data.applications?Math.round(data.audited_applications/data.applications*100):0
+  const completion=data.resolved+data.open_remediations?Math.round(data.resolved/(data.resolved+data.open_remediations)*100):0
+  const exportFile=async(format:'pdf'|'excel')=>{setBusy(format);setMessage('');try{if(format==='pdf')await downloadPosturePdf(data,demo);else await downloadPostureExcel(data,demo);setMessage(`Le rapport ${format.toUpperCase()} a été généré et téléchargé.`)}catch(error){setMessage(error instanceof Error?error.message:'La génération du rapport a échoué.')}finally{setBusy(null)}}
+  return <section className="report-center">
+    <div className="report-heading"><div><div className="eyebrow"><span/> GOUVERNANCE · EXPORTS INSTITUTIONNELS</div><h1>Rapports de posture</h1><p>Produisez une synthèse structurée des indicateurs disponibles, prête à partager ou à archiver.</p></div><span className={`report-source ${demo?'is-demo':''}`}><i/>{demo?'JEU DE DÉMONSTRATION':'SOURCE API'}</span></div>
+    {demo&&<div className="report-disclaimer"><Shield size={16}/><span><b>Rapport de démonstration</b> — les valeurs ci-dessous sont synthétiques et ne décrivent aucun actif ni résultat d’audit réel.</span></div>}
+    <div className="report-kpis">{[['Applications',data.applications],['Serveurs',data.servers],['Couverture audit',`${coverage}%`],['Constats',findings],['Corrections clôturées',`${completion}%`]].map(([label,value])=><article key={String(label)}><small>{label}</small><b>{value}</b></article>)}</div>
+    <div className="report-export-grid">
+      <button className="report-export-card pdf-export" onClick={()=>void exportFile('pdf')} disabled={busy!==null}>
+        <span className="report-export-icon"><FileText size={22}/></span><span className="report-export-copy"><b>Rapport PDF institutionnel</b><small>Emblème RDC en en-tête et filigrane · synthèse exécutive · tableaux de sévérité · méthodologie</small></span><span className="report-export-action">{busy==='pdf'?'Génération…':'Télécharger le PDF'} <Download size={15}/></span>
+      </button>
+      <button className="report-export-card excel-export" onClick={()=>void exportFile('excel')} disabled={busy!==null}>
+        <span className="report-export-icon"><FileSpreadsheet size={22}/></span><span className="report-export-copy"><b>Classeur Excel professionnel</b><small>Onglets Synthèse, Sévérité et Notes · cellules formatées · filtres · indicateurs calculés</small></span><span className="report-export-action">{busy==='excel'?'Génération…':'Télécharger le classeur'} <Download size={15}/></span>
+      </button>
+    </div>
+    {message&&<div className={`report-feedback ${message.includes('échoué')||message.includes('impossible')?'has-error':''}`} role="status">{message}</div>}
+    <div className="report-preview"><div className="report-preview-head"><div><span>APERÇU DU CONTENU</span><h2>Vue de synthèse incluse dans les exports</h2></div><span>{new Date().toLocaleDateString('fr-CD',{day:'2-digit',month:'long',year:'numeric'})}</span></div><div className="report-preview-table"><div className="report-preview-row report-preview-labels"><span>INDICATEUR</span><span>VALEUR</span><span>SOURCE</span></div>{[['Applications auditées',`${data.audited_applications} / ${data.applications}`,demo?'Simulation':'API'],['Constats critiques',data.vulnerabilities.critical,demo?'Simulation':'API'],['Constats élevés',data.vulnerabilities.high,demo?'Simulation':'API'],['Remédiations ouvertes',data.open_remediations,demo?'Simulation':'API'],['Environnements PHP à vérifier',data.unsupported_php,demo?'Simulation':'API']].map(([label,value,source])=><div className="report-preview-row" key={String(label)}><b>{label}</b><span>{value}</span><small>{source}</small></div>)}</div></div>
+    <p className="report-note"><ShieldCheck size={14}/> Le PDF et le classeur reprennent les valeurs accessibles au moment du clic. Aucune série historique ni donnée absente n’est inventée.</p>
+  </section>
 }
 
 function LoginPage({apiRoot,online,theme,onToggleTheme,onLogin,onPreview,onInstall,installed}:{apiRoot:string;online:boolean;theme:'dark'|'light';onToggleTheme:()=>void;onLogin:(user:User)=>void;onPreview:()=>void;onInstall:()=>void;installed:boolean}){

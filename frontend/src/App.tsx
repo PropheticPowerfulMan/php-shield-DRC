@@ -63,7 +63,7 @@ export default function App(){
   const installApp=async()=>{if(!installEvent){setInstallHelp(true);return}await installEvent.prompt();const result=await installEvent.userChoice;if(result.outcome==='accepted')setInstalled(true);setInstallEvent(null)}
   const selectPage=(name:string)=>{setActive(name);setSearchOpen(false);setQuery('');setMobile(false)}
   const matches=nav.flatMap(group=>group.links.map(([name,Icon])=>({name,Icon}))).filter(item=>query.trim()&&item.name.toLocaleLowerCase('fr').includes(query.trim().toLocaleLowerCase('fr')))
-  const logout=async()=>{try{await fetch(`${apiRoot}/auth/logout`,{method:'POST',credentials:'include'})}finally{setUser(null);setPreview(false);setProfileOpen(false);setActive('Vue d’ensemble')}}
+  const logout=async()=>{try{if(user)await fetch(`${apiRoot}/auth/logout`,{method:'POST',credentials:'include'})}catch{/* Return to the sign-in screen even when the API is unreachable. */}finally{setUser(null);setPreview(false);setProfileOpen(false);setActive('Vue d’ensemble')}}
 
   if(!authReady)return <div className="boot-screen"><img src={`${import.meta.env.BASE_URL}assets/drc-government-emblem.png`} alt=""/><span>Vérification de la session sécurisée…</span></div>
   if(!user&&!preview)return <LoginPage apiRoot={apiRoot} online={online} theme={theme} onToggleTheme={()=>setTheme(theme==='dark'?'light':'dark')} onLogin={setUser} onPreview={()=>setPreview(true)} onInstall={installApp} installed={installed}/>
@@ -74,7 +74,7 @@ export default function App(){
       <div className="brand"><img src={`${import.meta.env.BASE_URL}assets/drc-government-emblem.png`} alt="Emblème du Gouvernement de la République démocratique du Congo"/><div><strong>PHP-SHIELD <span>RDC</span></strong><small>APPLICATION SECURITY<br/> & CYBER RESILIENCE</small></div><button className="close" onClick={()=>setMobile(false)} aria-label="Fermer le menu"><X size={18}/></button></div>
       <div className="scope"><span className="dot"/> ENVIRONNEMENT LOCAL</div>
       <nav>{nav.map(group=><section key={group.title}><label>{group.title}</label>{group.links.map(([name,Icon])=><button key={name} title={name} aria-current={active===name?'page':undefined} className={active===name?'selected':''} onClick={()=>selectPage(name)}><Icon size={17}/><span>{name}</span></button>)}</section>)}</nav>
-      <div className="sidebar-bottom"><div className="profile"><div className="avatar">{user?.email?.slice(0,2).toUpperCase()||'AP'}</div><div><b>{user?.email||'Aperçu public'}</b><small>{user?.roles?.[0]||'Lecture seule · sans données'}</small></div></div><small className="version">VERSION 0.2.0 · APERÇU TECHNIQUE</small></div>
+      <div className="sidebar-bottom"><div className="profile"><div className="avatar">{user?.email?.slice(0,2).toUpperCase()||'AP'}</div><div><b>{user?.email||'Aperçu public'}</b><small>{user?.roles?.[0]||'Lecture seule · sans données'}</small></div></div><button className="sidebar-logout" onClick={logout} title="Déconnexion" aria-label="Déconnexion"><LogOut size={15}/><span>Déconnexion</span></button><small className="version">VERSION 0.2.0 · APERÇU TECHNIQUE</small></div>
     </aside>
     <main><header>
       <button className="sidebar-toggle" onClick={()=>{if(window.innerWidth<=700)setMobile(true);else setCollapsed(!collapsed)}} aria-label={window.innerWidth<=700?'Ouvrir le menu':collapsed?'Développer le menu latéral':'Replier le menu latéral'} title={collapsed?'Développer le menu':'Replier le menu'}><Menu size={18}/></button>

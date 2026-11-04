@@ -325,3 +325,14 @@ html[data-theme="light"] .demo-credentials>b{color:#735d1b}
 html[data-theme="light"] .demo-credentials>span{color:#616962}
 html[data-theme="light"] .demo-credentials code{color:#303630}
 @media(max-width:420px){.demo-credentials{padding:10px}.demo-credentials>span{font-size:8px}.demo-credentials code{font-size:9px}}
+
+/* Unified slim scrollbars for the shell, navigation, dialogs, and overflow panels. */
+:root{--scroll-track:#111315;--scroll-thumb:#34393d;--scroll-thumb-hover:#c4a245;--scroll-thumb-border:#111315;color-scheme:dark}
+html[data-theme="light"]{--scroll-track:#e9e6dd;--scroll-thumb:#b9b5aa;--scroll-thumb-hover:#987a2b;--scroll-thumb-border:#e9e6dd;color-scheme:light}
+*{scrollbar-width:thin;scrollbar-color:var(--scroll-thumb) var(--scroll-track)}
+*::-webkit-scrollbar{width:9px;height:9px}
+*::-webkit-scrollbar-track{background:var(--scroll-track);border-radius:999px}
+*::-webkit-scrollbar-thumb{min-width:28px;min-height:28px;border:2px solid var(--scroll-thumb-border);border-radius:999px;background:var(--scroll-thumb);background-clip:padding-box}
+*::-webkit-scrollbar-thumb:hover{background:var(--scroll-thumb-hover);background-clip:padding-box}
+*::-webkit-scrollbar-corner{background:var(--scroll-track)}
+*::-webkit-resizer{background:var(--scroll-track)}

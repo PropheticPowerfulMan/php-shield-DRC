@@ -248,7 +248,7 @@ export async function downloadPostureExcel(data: ReportData, demo: boolean) {
   summary.getCell('A3').font = { name: 'Aptos', size: 9, italic: true, color: { argb: demo ? 'FF805C18' : 'FF426B55' } }
   summary.getRow(3).height = 22
   const imageId = workbook.addImage({ base64: emblem, extension: 'png' })
-  summary.addImage(imageId, { tl: { col: 3.25, row: 0.2 }, br: { col: 4.35, row: 2.65 } })
+  summary.addImage(imageId, 'D1:E3')
   summary.addRow([])
   const header = summary.addRow(['INDICATEUR', 'VALEUR', 'COMMENTAIRE'])
   styleHeader(header)

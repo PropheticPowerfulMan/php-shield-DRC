@@ -1,4 +1,4 @@
-const CACHE_NAME = 'php-shield-shell-v1';
+const CACHE_NAME = 'php-shield-shell-v2';
 const APP_SCOPE = new URL('./', self.registration.scope);
 const APP_ICON = new URL('assets/drc-government-emblem.png', APP_SCOPE).href;
 const APP_PWA_ICON = new URL('assets/app-icon.svg', APP_SCOPE).href;

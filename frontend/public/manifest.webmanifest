@@ -14,15 +14,15 @@
   "categories": ["security", "business", "productivity"],
   "icons": [
     {
-      "src": "/php-shield-DRC/assets/app-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
       "src": "/php-shield-DRC/assets/drc-government-emblem.png",
       "sizes": "1280x1280",
       "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/php-shield-DRC/assets/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any"
     }
   ]

@@ -18,7 +18,9 @@ Docker et Docker Compose, ou Python 3.11+ avec PostgreSQL/Redis et Node.js 20+.
 2. `docker compose up --build`
 3. API et OpenAPI : http://localhost:8000/docs ; UI : http://localhost:8080.
 
-Ce socle n'a pas de compte bootstrap ni d'inscription publique. Ne l'exposez pas comme service de production avant d'avoir achevé l'authentification, les autorisations, les migrations et la revue de sécurité.
+Créer le premier administrateur après le démarrage : `docker compose exec api python -m app.bootstrap_admin`. Le mot de passe est saisi de façon interactive; aucun compte par défaut ni inscription publique n'existe. La session utilise un cookie HTTP-only, `SameSite=Lax` et une expiration de huit heures.
+
+Ne l'exposez pas comme service de production avant d'avoir achevé les permissions métier, le MFA, la limitation distribuée des tentatives et la revue de sécurité. GitHub Pages héberge uniquement l'aperçu frontend; l'API d'authentification doit être déployée séparément.
 
 ## Développement local
 

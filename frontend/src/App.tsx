@@ -1,11 +1,19 @@
 import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react'
-import { Activity, AlertTriangle, AppWindow, Bell, BookOpen, Check, ChevronDown, CircleHelp, Download, FileBarChart, FileSpreadsheet, FileText, Gauge, Globe2, HardDrive, LockKeyhole, LogOut, Menu, Moon, Search, Settings, Shield, ShieldCheck, Smartphone, Sun, Users, X, Eye, EyeOff } from 'lucide-react'
+import { Activity, AlertTriangle, AppWindow, ArrowRight, ArrowUpRight, Bell, BookOpen, Check, ChevronDown, CircleHelp, Download, FileBarChart, FileSpreadsheet, FileText, Gauge, Globe2, HardDrive, LockKeyhole, LogOut, Menu, Moon, Search, Settings, Shield, ShieldCheck, Smartphone, Sun, Users, X, Eye, EyeOff } from 'lucide-react'
 import { downloadPostureExcel, downloadPosturePdf, type ReportData } from './reportExports'
 
 const nav = [
   { title: 'PILOTAGE', links: [['Vue d’ensemble', Gauge], ['Applications', AppWindow], ['Infrastructure', HardDrive]] },
   { title: 'SÉCURITÉ', links: [['Vulnérabilités', Shield], ['Audits PHP', Activity], ['Audits web', Globe2], ['Remédiation', ShieldCheck]] },
   { title: 'GOUVERNANCE', links: [['Rapports', FileBarChart], ['Utilisateurs & rôles', Users], ['Paramètres', Settings]] },
+] as const
+const navItems = nav.flatMap(group=>group.links.map(([name,Icon])=>({name,Icon})))
+const searchKey = (value:string)=>value.trim().toLocaleLowerCase('fr').normalize('NFD').replace(/\p{Diacritic}/gu,'')
+const emblemUrl = `${import.meta.env.BASE_URL}assets/drc-government-emblem.png`
+const quickLinks = [
+  { name: 'Infrastructure', description: 'Serveurs et environnements', Icon: HardDrive },
+  { name: 'Vulnérabilités', description: 'Constats et niveaux de sévérité', Icon: Shield },
+  { name: 'Rapports', description: 'Synthèses et exports PDF ou Excel', Icon: FileBarChart },
 ] as const
 type User = { id:string; email:string; roles:string[] }
 type Dashboard = { applications:number; servers:number; audited_applications:number; awaiting_audit:number; vulnerabilities:{critical:number;high:number;moderate:number;low:number}; open_remediations:number; resolved:number; unsupported_php:number; notice:string }
@@ -52,7 +60,7 @@ export default function App(){
   const searchRef=useRef<HTMLInputElement>(null)
   const apiRoot=`${import.meta.env.BASE_URL}api/v1`
 
-  useEffect(()=>{document.documentElement.dataset.theme=theme;document.querySelector<HTMLMetaElement>('#theme-color')?.setAttribute('content',theme==='light'?'#e1ded3':'#111315');localStorage.setItem('php-shield-theme',theme)},[theme])
+  useEffect(()=>{document.documentElement.dataset.theme=theme;document.querySelector<HTMLMetaElement>('#theme-color')?.setAttribute('content',theme==='light'?'#e9e4d9':'#141617');localStorage.setItem('php-shield-theme',theme)},[theme])
   useEffect(()=>{localStorage.setItem('php-shield-sidebar',collapsed?'collapsed':'expanded')},[collapsed])
   useEffect(()=>{
     fetch(`${apiRoot}/auth/me`,{credentials:'include'}).then(async r=>{if(r.ok){setOnline(true);setUser(await r.json())}else if(r.status===401){setOnline(true)}else throw new Error('API indisponible')}).catch(()=>setOnline(false)).finally(()=>setAuthReady(true))
@@ -63,23 +71,27 @@ export default function App(){
   useEffect(()=>{if(!searchOpen)return;const closeOnOutside=(event:PointerEvent)=>{const target=event.target;if(target instanceof Node&&!searchRef.current?.closest('.search')?.contains(target)){setSearchOpen(false)}};document.addEventListener('pointerdown',closeOnOutside);return()=>document.removeEventListener('pointerdown',closeOnOutside)},[searchOpen])
 
   const installApp=async()=>{if(!installEvent){setInstallHelp(true);return}await installEvent.prompt();const result=await installEvent.userChoice;if(result.outcome==='accepted')setInstalled(true);setInstallEvent(null)}
-  const selectPage=(name:string)=>{setActive(name);setSearchOpen(false);setQuery('');setMobile(false)}
-  const searchableItems=nav.flatMap(group=>group.links.map(([name,Icon])=>({name,Icon})))
-  const matches=searchableItems.filter(item=>!query.trim()||item.name.toLocaleLowerCase('fr').includes(query.trim().toLocaleLowerCase('fr')))
+  const selectPage=(name:string)=>{setActive(name);setSearchOpen(false);setQuery('');setMobile(false);window.scrollTo(0,0)}
+  const normalizedQuery=searchKey(query)
+  const matches=navItems.filter(item=>searchKey(item.name).includes(normalizedQuery))
   const logout=async()=>{try{if(user)await fetch(`${apiRoot}/auth/logout`,{method:'POST',credentials:'include'})}catch{/* Return to the sign-in screen even when the API is unreachable. */}finally{setUser(null);setPreview(false);setProfileOpen(false);setActive('Vue d’ensemble')}}
 
   if(!authReady)return <div className="boot-screen"><img src={`${import.meta.env.BASE_URL}assets/drc-government-emblem.png`} alt=""/><span>Vérification de la session sécurisée…</span></div>
-  if(!user&&!preview)return <LoginPage apiRoot={apiRoot} online={online} theme={theme} onToggleTheme={()=>setTheme(theme==='dark'?'light':'dark')} onLogin={setUser} onPreview={()=>setPreview(true)} onInstall={installApp} installed={installed}/>
+  if(!user&&!preview)return <>
+    <LoginPage apiRoot={apiRoot} online={online} theme={theme} onToggleTheme={()=>setTheme(theme==='dark'?'light':'dark')} onLogin={setUser} onPreview={()=>setPreview(true)} onInstall={installApp} installed={installed}/>
+    {installHelp&&<InstallDialog onClose={()=>setInstallHelp(false)}/>}
+  </>
 
   return <div className={`shell ${collapsed?'collapsed':''}`}>
+    <a className="skip-link" href="#workspace-content">Aller au contenu</a>
     {mobile&&<button className="scrim" onClick={()=>setMobile(false)} aria-label="Fermer le menu"/>}
-    <aside className={`sidebar ${mobile?'show':''}`}>
-      <div className="brand"><img src={`${import.meta.env.BASE_URL}assets/drc-government-emblem.png`} alt="Emblème du Gouvernement de la République démocratique du Congo"/><div><strong>PHP-SHIELD <span>RDC</span></strong><small>APPLICATION SECURITY<br/> & CYBER RESILIENCE</small></div><button className="close" onClick={()=>setMobile(false)} aria-label="Fermer le menu"><X size={18}/></button></div>
-      <div className="scope"><span className="dot"/> ENVIRONNEMENT LOCAL</div>
-      <nav>{nav.map(group=><section key={group.title}><label>{group.title}</label>{group.links.map(([name,Icon])=><button key={name} title={name} aria-current={active===name?'page':undefined} className={active===name?'selected':''} onClick={()=>selectPage(name)}><Icon size={17}/><span>{name}</span></button>)}</section>)}</nav>
+    <aside id="workspace-sidebar" className={`sidebar ${mobile?'show':''}`}>
+      <div className="brand"><img src={emblemUrl} alt="Emblème de la RDC"/><div><strong>PHP-SHIELD <span>RDC</span></strong><small>Sécurité applicative</small></div><button className="close" onClick={()=>setMobile(false)} aria-label="Fermer le menu"><X size={18}/></button></div>
+      <div className="scope"><span className="dot"/> {preview?'Aperçu public':'Espace de travail'}</div>
+      <nav aria-label="Navigation principale">{nav.map(group=><section key={group.title} aria-label={group.title}><h2 className="nav-group-title">{group.title}</h2>{group.links.map(([name,Icon])=><button key={name} title={name} aria-label={name} aria-current={active===name?'page':undefined} className={active===name?'selected':''} onClick={()=>selectPage(name)}><Icon size={17} aria-hidden="true"/><span>{name}</span></button>)}</section>)}</nav>
       <div className="sidebar-bottom"><div className="profile"><div className="avatar">{user?.email?.slice(0,2).toUpperCase()||'AP'}</div><div><b>{user?.email||'Aperçu public'}</b><small>{user?.roles?.[0]||'Lecture seule · sans données'}</small></div></div><button className="sidebar-logout" onClick={logout} title="Déconnexion" aria-label="Déconnexion"><LogOut size={15}/><span>Déconnexion</span></button><small className="version">VERSION 0.2.0 · APERÇU TECHNIQUE</small></div>
     </aside>
-    <main><header>
+    <main className="workspace"><header className="app-topbar">
       <button className="sidebar-toggle" onClick={()=>{if(window.innerWidth<=700)setMobile(true);else setCollapsed(!collapsed)}} aria-label={window.innerWidth<=700?'Ouvrir le menu':collapsed?'Développer le menu latéral':'Replier le menu latéral'} title={collapsed?'Développer le menu':'Replier le menu'}><Menu size={18}/></button>
       <div className="crumb">ESPACE DE SÉCURITÉ <span>/</span> <b>{active.toUpperCase()}</b></div>
       <div className="head-actions"><div className={`search ${searchOpen?'search-active':''}`}><Search size={16} className="search-desktop-icon"/><button type="button" className="search-trigger" aria-label={searchOpen?'Fermer la recherche':'Ouvrir la recherche'} aria-expanded={searchOpen} onClick={()=>{if(searchOpen){setSearchOpen(false);setQuery('');searchRef.current?.blur()}else{setSearchOpen(true);requestAnimationFrame(()=>searchRef.current?.focus())}}}><Search size={17}/></button><input ref={searchRef} aria-label="Rechercher une section" placeholder="Rechercher une section…" value={query} onFocus={()=>setSearchOpen(true)} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&matches[0])selectPage(matches[0].name);if(e.key==='Escape'){setSearchOpen(false);setQuery('')}}}/><kbd>Ctrl K</kbd>{searchOpen&&<><button type="button" className="search-close" aria-label="Fermer la recherche" onClick={()=>{setSearchOpen(false);setQuery('');searchRef.current?.blur()}}><X size={16}/></button><div className="search-results">{matches.length?matches.map(({name,Icon})=><button key={name} onMouseDown={e=>e.preventDefault()} onClick={()=>selectPage(name)}><Icon size={15}/><span>{name}</span><small>Ouvrir</small></button>):<p>Aucune section correspondante.</p>}</div></>}</div>
@@ -87,15 +99,55 @@ export default function App(){
         <div className="popover-anchor"><button className="icon-btn" aria-label="Ouvrir les notifications" title="Notifications" onClick={()=>{setNotificationsOpen(!notificationsOpen);setProfileOpen(false)}}><Bell size={18}/></button>{notificationsOpen&&<div className="popover notification-popover"><div className="popover-head"><b>Notifications</b><button onClick={()=>setNotificationsOpen(false)} aria-label="Fermer"><X size={15}/></button></div><div className="popover-empty"><Bell size={19}/><b>Aucune alerte récente</b><span>Les alertes apparaîtront ici dès que la surveillance sera activée.</span></div></div>}</div>
         <div className="popover-anchor"><button className="user user-trigger" onClick={()=>{setProfileOpen(!profileOpen);setNotificationsOpen(false)}} aria-expanded={profileOpen}><div className="avatar">{user?.email?.slice(0,2).toUpperCase()||'AP'}</div><span>{user?.email||'Aperçu public'}<small>{user?.roles?.[0]||'Lecture seule'}</small></span><ChevronDown size={14}/></button>{profileOpen&&<div className="popover profile-popover"><div className="profile-identity"><b>{user?.email||'Mode aperçu public'}</b><small>{user?.roles?.join(', ')||'Aucune donnée accessible'}</small></div>{user&&<button className="logout-button" onClick={logout}><LogOut size={15}/> Déconnexion</button>}{!user&&<button className="logout-button" onClick={()=>{setPreview(false);setProfileOpen(false)}}><LockKeyhole size={15}/> Ouvrir la connexion</button>}</div>}</div>
       </div></header>
-      <div className="content">
+      <div className="content" id="workspace-content" tabIndex={-1}>
         {active==='Vue d’ensemble'?<>
-          <div className="welcome"><div><div className="eyebrow"><span/> CENTRE DES OPÉRATIONS DE SÉCURITÉ</div><h1>Vue d’ensemble</h1><p>Surveillez l’exposition, les audits et la posture de sécurité de votre parc applicatif.</p></div><div className="welcome-actions"><div className="date"><Activity size={15}/> {preview?'JEU DE DÉMO':'DONNÉES EN DIRECT'} <span className={online&&!preview?'green':''}>{preview?'SIMULATION':online?'API CONNECTÉE':'APERÇU HORS LIGNE'}</span></div><button className={`install-button ${installed?'is-installed':''}`} onClick={installApp} disabled={installed} title={installed?'Application installée':'Installer PHP-SHIELD RDC'}>{installed?<Check size={16}/>:<Download size={16}/>}<span>{installed?'Application installée':'Installer l’app'}</span></button></div></div>
+          <section className="page-hero welcome" aria-labelledby="overview-title">
+            <div className="hero-copy">
+              <div className="eyebrow"><span/> PILOTAGE DE LA SÉCURITÉ APPLICATIVE</div>
+              <h1 id="overview-title">Vue d’ensemble</h1>
+              <p>Consultez la couverture des audits, les vulnérabilités et l’avancement des corrections.</p>
+              <div className="welcome-actions">
+                <span className={`source-chip ${online&&!preview?'is-live':''}`}><i/>{preview?'Données de démonstration':online?'API connectée':'Service indisponible'}</span>
+                <button className="install-button" onClick={installApp} disabled={installed}>
+                  {installed?<Check size={16}/>:<Download size={16}/>}
+                  {installed?'Application installée':'Installer l’app'}
+                </button>
+              </div>
+            </div>
+            <div className="hero-insignia" aria-hidden="true"><ShieldCheck size={56} strokeWidth={1.15}/></div>
+          </section>
           <div className={`notice ${preview?'demo-notice':''}`}><div className="notice-icon"><AlertTriangle size={17}/></div><div><b>{preview?'Jeu de démonstration · données simulées':'Plateforme en construction'}</b><p>{preview?'Indicateurs illustratifs uniquement : aucun actif ni résultat réel n’est représenté.':data.notice}</p></div><button aria-label="Aide sur la plateforme" title="Aide" onClick={()=>setHelpOpen(true)}><CircleHelp size={17}/></button></div>
-          <div className="section-title"><div><h2>Vue de la posture</h2><p>Inventaire et activité de sécurité</p></div><span>MISE À JOUR À L’INSTANT</span></div>
-          <div className="stats">{[['Applications',dashboard.applications,preview?'inventaire illustratif':'inventoriées',100],['Serveurs',dashboard.servers,preview?'environnements illustratifs':'inventoriés',dashboard.servers?100:0],['Couverture audit',`${auditCoverage}%`,`${dashboard.audited_applications} / ${dashboard.applications} applications`,auditCoverage],['Corrections clôturées',`${remediationRate}%`,`${dashboard.resolved} / ${dashboard.resolved+dashboard.open_remediations} actions`,remediationRate]].map(([title,value,note,percent],i)=><div className="stat" key={String(title)}><div className="stat-top"><span>{title}</span><div className={`stat-icon ic${i}`}><IconFor i={i}/></div></div><strong>{value}</strong><small>{note}</small><div className="mini-line"><span style={{width:`${percent}%`}}/></div></div>)}</div>
+          <div className="section-title"><div><h2>Vue de la posture</h2><p>Inventaire et activité de sécurité</p></div><span className="section-meta">{preview?'Simulation':'Données disponibles'}</span></div>
+          <div className="stats">
+            {[
+              {title:'Applications', value:dashboard.applications, detail:preview?'Inventaire simulé':'Applications inventoriées'},
+              {title:'Serveurs', value:dashboard.servers, detail:preview?'Environnements simulés':'Serveurs inventoriés'},
+              {title:'Couverture des audits', value:`${auditCoverage} %`, detail:`${dashboard.audited_applications} / ${dashboard.applications} applications`, progress:auditCoverage},
+              {title:'Corrections clôturées', value:`${remediationRate} %`, detail:`${dashboard.resolved} / ${dashboard.resolved+dashboard.open_remediations} actions`, progress:remediationRate},
+            ].map(({title,value,detail,progress},index)=>(
+              <article className="stat" key={title}>
+                <div className="stat-top"><div className={`stat-icon ic${index}`}><IconFor i={index}/></div><h3>{title}</h3></div>
+                <strong>{value}</strong>
+                <small>{detail}</small>
+                {progress!==undefined&&<div className="mini-line" aria-hidden="true"><span style={{width:`${progress}%`}}/></div>}
+              </article>
+            ))}
+          </div>
           <div className="section-title vuln-title"><div><h2>Vulnérabilités ouvertes</h2><p>Constats suivis par niveau de sévérité</p></div><button className="text-link" onClick={()=>selectPage('Vulnérabilités')}>Voir le registre <span>→</span></button></div>
           <div className="severity">{[['Critique',dashboard.vulnerabilities.critical,'red'],['Élevée',dashboard.vulnerabilities.high,'orange'],['Modérée',dashboard.vulnerabilities.moderate,'gold'],['Faible',dashboard.vulnerabilities.low,'blue']].map(([n,v,c])=><div className="sev" key={n}><div className="sev-label"><span className={`sev-dot ${c}`}/>{n}<b>{v}</b></div><div className="bar"><span className={String(c)} style={{width:`${vulnerabilitiesTotal(dashboard)?Math.round(Number(v)/vulnerabilitiesTotal(dashboard)*100):0}%`}}/></div></div>)}</div>
           <div className="lower analytics-grid"><div className="panel chart-panel"><div className="panel-head"><div><h3>Évolution des audits</h3><p>Audits clôturés par mois · période de 6 mois</p></div><span className="chart-unit">AUDITS / MOIS</span></div>{preview?<AuditTrendChart/>:<div className="chart-empty"><Activity size={22}/><b>Historique non disponible</b><span>L’API doit fournir les séries temporelles pour tracer une tendance fiable.</span></div>}<div className="panel-foot"><span><i className={preview?'':'green-bg'}/>{preview?'SÉRIE DE DÉMONSTRATION':'HISTORIQUE API'}</span><span>{preview?'96 audits simulés':`${dashboard.audited_applications} audits réalisés`}</span></div></div><div className="panel chart-panel"><div className="panel-head"><div><h3>Répartition des constats</h3><p>Part de chaque niveau de sévérité</p></div><span className="chart-unit">{vulnerabilitiesTotal(dashboard)} CONSTATS</span></div><SeverityChart data={dashboard.vulnerabilities}/><div className="panel-foot"><span><i className={preview?'':'green-bg'}/>{preview?'JEU DE DONNÉES SIMULÉ':'DONNÉES API'}</span><span>Critique → faible</span></div></div></div>
+          <section className="quick-access" aria-labelledby="quick-access-title">
+            <div className="section-title"><div><h2 id="quick-access-title">Accès directs</h2><p>Poursuivre depuis la vue d’ensemble</p></div></div>
+            <div className="quick-grid">
+              {quickLinks.map(({name,description,Icon})=>(
+                <button className="quick-card" key={name} onClick={()=>selectPage(name)}>
+                  <span className="quick-icon"><Icon size={20} aria-hidden="true"/></span>
+                  <span><strong>{name}</strong><small>{description}</small></span>
+                  <ArrowUpRight size={17} aria-hidden="true"/>
+                </button>
+              ))}
+            </div>
+          </section>
         </>:active==='Rapports'?<ReportsPage data={dashboard} demo={preview}/>:<ModulePage name={active} description={descriptions[active]||'Cette section sera disponible dans une prochaine phase.'} onBack={()=>selectPage('Vue d’ensemble')}/>}
         <footer className="app-footer"><span className="footer-project"><strong>PHP-SHIELD RDC</strong><small>Projet proposé pour évaluation technique</small></span><span className="founder-signature"><small>CONCEPTION, FONDATION &amp; PROPRIÉTÉ DU PROJET</small><b>LOKALA LOMBOTO Jonathan</b></span><span><Shield size={13}/> ENVIRONNEMENT NON PRODUCTION</span></footer>
       </div>
@@ -112,7 +164,7 @@ function ReportsPage({data,demo}:{data:ReportData;demo:boolean}){
   const completion=data.resolved+data.open_remediations?Math.round(data.resolved/(data.resolved+data.open_remediations)*100):0
   const exportFile=async(format:'pdf'|'excel')=>{setBusy(format);setMessage('');try{if(format==='pdf')await downloadPosturePdf(data,demo);else await downloadPostureExcel(data,demo);setMessage(`Le rapport ${format.toUpperCase()} a été généré et téléchargé.`)}catch(error){setMessage(error instanceof Error?error.message:'La génération du rapport a échoué.')}finally{setBusy(null)}}
   return <section className="report-center">
-    <div className="report-heading"><div><div className="eyebrow"><span/> GOUVERNANCE · EXPORTS INSTITUTIONNELS</div><h1>Rapports de posture</h1><p>Produisez une synthèse structurée des indicateurs disponibles, prête à partager ou à archiver.</p></div><span className={`report-source ${demo?'is-demo':''}`}><i/>{demo?'JEU DE DÉMONSTRATION':'SOURCE API'}</span></div>
+    <div className="page-hero report-heading"><div><div className="eyebrow"><span/> GOUVERNANCE · EXPORTS INSTITUTIONNELS</div><h1>Rapports de posture</h1><p>Produisez une synthèse structurée des indicateurs disponibles, prête à partager ou à archiver.</p></div><span className={`report-source ${demo?'is-demo':''}`}><i/>{demo?'JEU DE DÉMONSTRATION':'SOURCE API'}</span></div>
     {demo&&<div className="report-disclaimer"><Shield size={16}/><span><b>Rapport de démonstration</b> — les valeurs ci-dessous sont synthétiques et ne décrivent aucun actif ni résultat d’audit réel.</span></div>}
     <div className="report-kpis">{[['Applications',data.applications],['Serveurs',data.servers],['Couverture audit',`${coverage}%`],['Constats',findings],['Corrections clôturées',`${completion}%`]].map(([label,value])=><article key={String(label)}><small>{label}</small><b>{value}</b></article>)}</div>
     <div className="report-export-grid">
@@ -169,10 +221,84 @@ function LoginDocuments() {
 function LoginPage({apiRoot,online,theme,onToggleTheme,onLogin,onPreview,onInstall,installed}:{apiRoot:string;online:boolean;theme:'dark'|'light';onToggleTheme:()=>void;onLogin:(user:User)=>void;onPreview:()=>void;onInstall:()=>void;installed:boolean}){
   const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[showPassword,setShowPassword]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('')
   const submit=async(e:FormEvent)=>{e.preventDefault();setError('');const normalizedEmail=email.trim().toLowerCase(),normalizedPassword=password.trim().toUpperCase();if(normalizedEmail==='demo@php-shield.cd'&&normalizedPassword==='RDC-DEMO-2026'){onPreview();return}if(!online){if(normalizedEmail&&normalizedPassword){onPreview();return}setError('Saisissez un identifiant et un mot de passe pour ouvrir l’aperçu public en lecture seule.');return}setBusy(true);try{const response=await fetch(`${apiRoot}/auth/login`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:normalizedEmail,password})});if(!response.ok){const result=await response.json().catch(()=>({}));throw new Error(response.status===401?'Adresse ou mot de passe incorrect.':result.detail||'Connexion impossible.')}onLogin(await response.json())}catch(err){setError(err instanceof Error?err.message:'Service de connexion indisponible.');}finally{setBusy(false)}}
-  return <div className="login-page"><section className="login-identity"><div className="login-brand"><img src={`${import.meta.env.BASE_URL}assets/app-icon.svg`} alt="Emblème du Gouvernement de la République démocratique du Congo"/><div><span>RÉPUBLIQUE DÉMOCRATIQUE DU CONGO</span><b>PHP-SHIELD <i>RDC</i></b></div></div><div className="identity-content"><div className="identity-rule"><span/> PORTAIL INSTITUTIONNEL · ACCÈS SÉCURISÉ <span/></div><h1>Protéger.<br/><em>Anticiper.</em><br/>Renforcer.</h1><p>La sécurité applicative au service d’une infrastructure numérique résiliente.</p><div className="identity-seal"><img src={`${import.meta.env.BASE_URL}assets/app-icon.svg`} alt=""/><span>ESPACE NATIONAL<br/>DE CYBER-RÉSILIENCE</span></div></div><div className="login-footer">DANTIC · DIVISION BASES DE DONNÉES <span>PLATEFORME DE GOUVERNANCE CYBERNÉTIQUE</span></div></section>
-    <section className="login-panel"><div className="login-panel-top"><span className={`connection ${online?'online':''}`}><i/>{online?'SERVICE D’AUTHENTIFICATION DISPONIBLE':'API NON CONNECTÉE'}</span><div className="login-panel-actions"><button className="icon-btn theme-toggle" onClick={onToggleTheme} aria-label={theme==='dark'?'Activer le mode clair':'Activer le mode sombre'} title={theme==='dark'?'Mode clair':'Mode sombre'}>{theme==='dark'?<Sun size={17}/>:<Moon size={17}/>}</button><button className="install-button login-install" onClick={onInstall} disabled={installed}>{installed?<Check size={15}/>:<Download size={15}/>}<span>{installed?'Installée':'Installer la PWA'}</span></button></div></div>
-      <div className="login-stack"><div className="login-card"><div className="login-kicker"><LockKeyhole size={15}/> ESPACE RÉSERVÉ</div><h2>Connexion</h2><p className="login-intro">Accédez à votre espace de supervision sécurisé.</p><form onSubmit={submit} noValidate><label htmlFor="login-email">Adresse professionnelle</label><div className="login-input"><Users size={16}/><input id="login-email" type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="nom@institution.cd"/></div><div className="password-label"><label htmlFor="login-password">Mot de passe</label><button type="button" className="forgot-link" onClick={()=>setError('Pour réinitialiser un accès, contactez votre administrateur. Aucun lien de réinitialisation n’est configuré.')}>Accès oublié ?</button></div><div className="login-input"><LockKeyhole size={16}/><input id="login-password" type={showPassword?'text':'password'} autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="Votre mot de passe"/><button type="button" className="reveal-password" aria-label={showPassword?'Masquer le mot de passe':'Afficher le mot de passe'} onClick={()=>setShowPassword(!showPassword)}>{showPassword?<EyeOff size={16}/>:<Eye size={16}/>}</button></div>{error&&<div className="login-error" role="alert"><AlertTriangle size={15}/><span>{error}</span></div>}<button className="login-submit" type="submit" disabled={busy}>{busy?<><Activity size={16}/> Vérification sécurisée…</>:<>Ouvrir ma session <span>→</span></>}</button></form><div className="login-security"><ShieldCheck size={16}/><span>Les identifiants démo ouvrent un aperçu en lecture seule, sans données de sécurité.</span></div><div className="demo-credentials"><b>ACCÈS DÉMO · LECTURE SEULE</b><span>Identifiant <code>demo@php-shield.cd</code></span><span>Mot de passe <code>RDC-DEMO-2026</code></span><button className="preview-link" onClick={onPreview}>Ouvrir l’aperçu public</button></div></div><LoginDocuments/></div>
-      <div className="login-bottom"><span>Accès réservé au personnel autorisé</span><button onClick={()=>onPreview()}>À propos de PHP-SHIELD RDC</button></div></section></div>
+  return (
+    <div className="login-page">
+      <section className="login-identity" aria-labelledby="portal-title">
+        <div className="login-brand">
+          <img src={emblemUrl} alt="Emblème de la RDC"/>
+          <div><span>République démocratique du Congo</span><b>PHP-SHIELD <i>RDC</i></b></div>
+        </div>
+        <div className="identity-content">
+          <p className="identity-rule"><span/> Sécurité applicative</p>
+          <h1 id="portal-title"><span>Protéger.</span>{' '}<em>Anticiper.</em>{' '}<span>Renforcer.</span></h1>
+          <p>Une vue commune des applications PHP, des constats de sécurité et des actions de remédiation.</p>
+          <div className="identity-domains" aria-label="Domaines de la plateforme">
+            <span><AppWindow size={15}/> Inventaire</span>
+            <span><Shield size={15}/> Audits</span>
+            <span><FileBarChart size={15}/> Rapports</span>
+          </div>
+        </div>
+        <div className="login-footer"><span>Projet proposé pour évaluation technique</span><span>Conception · LOKALA LOMBOTO Jonathan</span></div>
+      </section>
+
+      <section className="login-panel" aria-labelledby="login-title">
+        <div className="login-panel-top">
+          <span className={`connection ${online?'online':''}`}><i/>{online?'Authentification disponible':'API non connectée'}</span>
+          <div className="login-panel-actions">
+            <button className="icon-btn theme-toggle" onClick={onToggleTheme} aria-label={theme==='dark'?'Activer le mode clair':'Activer le mode sombre'}>{theme==='dark'?<Sun size={18}/>:<Moon size={18}/>}</button>
+            <button className="install-button login-install" onClick={onInstall} disabled={installed}>
+              {installed?<Check size={16}/>:<Download size={16}/>}<span>{installed?'Installée':'Installer la PWA'}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="login-stack">
+          <div className="login-card">
+            <div className="login-kicker"><LockKeyhole size={15}/> Espace réservé</div>
+            <h2 id="login-title">Connexion</h2>
+            <p className="login-intro">Accédez à votre espace de supervision.</p>
+            <form onSubmit={submit} noValidate>
+              <label htmlFor="login-email">Adresse professionnelle</label>
+              <div className="login-input">
+                <Users size={17} aria-hidden="true"/>
+                <input id="login-email" type="email" autoComplete="username" required value={email} onChange={event=>setEmail(event.target.value)} placeholder="nom@institution.cd"/>
+              </div>
+              <div className="password-label">
+                <label htmlFor="login-password">Mot de passe</label>
+                <button type="button" className="forgot-link" onClick={()=>setError('Pour réinitialiser un accès, contactez votre administrateur. Aucun lien de réinitialisation n’est configuré.')}>Accès oublié ?</button>
+              </div>
+              <div className="login-input">
+                <LockKeyhole size={17} aria-hidden="true"/>
+                <input id="login-password" type={showPassword?'text':'password'} autoComplete="current-password" required value={password} onChange={event=>setPassword(event.target.value)} placeholder="Votre mot de passe"/>
+                <button type="button" className="reveal-password" aria-label={showPassword?'Masquer le mot de passe':'Afficher le mot de passe'} onClick={()=>setShowPassword(!showPassword)}>{showPassword?<EyeOff size={17}/>:<Eye size={17}/>}</button>
+              </div>
+              {error&&<div className="login-error" role="alert"><AlertTriangle size={17}/><span>{error}</span></div>}
+              <button className="login-submit" type="submit" disabled={busy}>
+                {busy?'Vérification sécurisée…':'Ouvrir ma session'}<ArrowRight size={18} aria-hidden="true"/>
+              </button>
+            </form>
+          </div>
+
+          <section className="demo-credentials" aria-labelledby="demo-title">
+            <div className="demo-heading"><span className="quick-icon"><Gauge size={19}/></span><div><h2 id="demo-title">Découvrir la plateforme</h2><p>Lecture seule · Données simulées</p></div></div>
+            <button className="preview-link" onClick={onPreview}>Ouvrir l’aperçu public <ArrowUpRight size={17}/></button>
+            <details className="demo-details">
+              <summary>Identifiants de démonstration</summary>
+              <div><span>Identifiant</span><code>demo@php-shield.cd</code></div>
+              <div><span>Mot de passe</span><code>RDC-DEMO-2026</code></div>
+            </details>
+          </section>
+
+          <LoginDocuments/>
+        </div>
+
+        <div className="login-bottom">
+          <div><ShieldCheck size={15}/><span>Accès institutionnel réservé au personnel autorisé</span></div>
+          <strong className="login-credit">Conception · LOKALA LOMBOTO Jonathan</strong>
+        </div>
+      </section>
+    </div>
+  )
 }
 
 function AuditTrendChart(){
@@ -197,10 +323,11 @@ const sixtyEight=68
 
 function ModulePage({name,description,onBack}:{name:string;description:string;onBack:()=>void}){
   const view=moduleViews[name]
+  const ModuleIcon=navItems.find(item=>item.name===name)?.Icon??Shield
   return <section className={`module-view module-view-${name.toLocaleLowerCase('fr').replaceAll(/[^a-z0-9]+/g,'-')}`}>
-    <div className="module-heading"><div><div className="eyebrow"><span/> {view?.eyebrow||'MODULE DE LA PLATEFORME'}</div><h1>{name}</h1><p>{view?.summary||description}</p></div><button className="install-button" onClick={()=>window.location.reload()}><Activity size={15}/> Actualiser</button></div>
+    <div className="page-hero module-heading"><div><div className="eyebrow"><span/> {view?.eyebrow||'MODULE DE LA PLATEFORME'}</div><h1>{name}</h1><p>{view?.summary||description}</p></div><span className="source-chip"><i/> Raccordement en attente</span></div>
     <div className="module-facts">{(view?.facts||[]).map(([label,value,note],index)=><article className="module-fact" key={label}><small>{label}</small><b>{value}</b><span>{note}</span><i className={`module-accent accent-${index}`}/></article>)}</div>
-    <div className="module-detail"><div className="module-detail-head"><div className="module-mark"><Shield size={22}/></div><div><span>ESPACE DE TRAVAIL</span><h2>{view?.detailTitle||name}</h2></div><span className="module-status"><i/> EN ATTENTE DE DONNÉES</span></div><div className="module-empty"><div className="module-empty-icon"><HardDrive size={23}/></div><h3>{view?.detailTitle||name}</h3><p>{view?.detail||description}</p><small className="module-guidance">{view?.action||'Consultez le tableau de bord'}</small></div></div>
+    <div className="module-detail"><div className="module-detail-head"><div className="module-mark"><ModuleIcon size={22}/></div><div><span>ESPACE DE TRAVAIL</span><h2>{view?.detailTitle||name}</h2></div><span className="module-status"><i/> EN ATTENTE DE DONNÉES</span></div><div className="module-empty"><div className="module-empty-icon"><HardDrive size={23}/></div><h3>{view?.detailTitle||name}</h3><p>{view?.detail||description}</p><small className="module-guidance">{view?.action||'Consultez le tableau de bord'}</small></div></div>
     <div className="module-bottom"><span>PHP-SHIELD RDC <i>·</i> {view?.eyebrow||'MODULE'}</span><button className="text-link" onClick={onBack}>← Vue d’ensemble</button></div>
   </section>
 }
@@ -210,7 +337,26 @@ function InstallDialog({onClose}:{onClose:()=>void}){
 }
 
 function InfoDialog({title,children,onClose,emblem=false}:{title:string;children:ReactNode;onClose:()=>void;emblem?:boolean}){
-  return <div className="install-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><section className="install-dialog" role="dialog" aria-modal="true" aria-label={title}><button className="install-close" onClick={onClose} aria-label="Fermer"><X size={18}/></button>{emblem&&<div className="install-emblem"><img src={`${import.meta.env.BASE_URL}assets/drc-government-emblem.png`} alt=""/></div>}<div className="install-eyebrow"><Smartphone size={14}/> {emblem?'APPLICATION WEB INSTALLABLE':'PHP-SHIELD RDC · INFORMATION'}</div><h2>{title}</h2>{children}<button className="install-done" onClick={onClose}>Compris</button></section></div>
+  const dialogRef=useRef<HTMLDialogElement>(null)
+  useEffect(()=>{
+    const dialog=dialogRef.current
+    dialog?.showModal()
+    return ()=>dialog?.close()
+  },[])
+  return (
+    <dialog ref={dialogRef} className="install-dialog" aria-label={title}
+      onCancel={event=>{event.preventDefault();onClose()}}
+      onClick={event=>{if(event.target===event.currentTarget)onClose()}}>
+      <div className="install-content">
+        <button className="install-close" onClick={onClose} aria-label="Fermer"><X size={18}/></button>
+        {emblem&&<div className="install-emblem"><img src={emblemUrl} alt=""/></div>}
+        <div className="install-eyebrow"><Smartphone size={14}/> {emblem?'APPLICATION WEB INSTALLABLE':'PHP-SHIELD RDC · INFORMATION'}</div>
+        <h2>{title}</h2>
+        {children}
+        <button className="install-done" onClick={onClose}>Compris</button>
+      </div>
+    </dialog>
+  )
 }
 
 function IconFor({i}:{i:number}){const icons=[AppWindow,HardDrive,ShieldCheck,Activity],I=icons[i];return <I size={17}/>}

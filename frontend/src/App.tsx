@@ -1,5 +1,5 @@
 import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react'
-import { Activity, AlertTriangle, AppWindow, Bell, Check, ChevronDown, CircleHelp, Download, FileBarChart, FileSpreadsheet, FileText, Gauge, Globe2, HardDrive, LockKeyhole, LogOut, Menu, Moon, Search, Settings, Shield, ShieldCheck, Smartphone, Sun, Users, X, Eye, EyeOff } from 'lucide-react'
+import { Activity, AlertTriangle, AppWindow, Bell, BookOpen, Check, ChevronDown, CircleHelp, Download, FileBarChart, FileSpreadsheet, FileText, Gauge, Globe2, HardDrive, LockKeyhole, LogOut, Menu, Moon, Search, Settings, Shield, ShieldCheck, Smartphone, Sun, Users, X, Eye, EyeOff } from 'lucide-react'
 import { downloadPostureExcel, downloadPosturePdf, type ReportData } from './reportExports'
 
 const nav = [
@@ -97,7 +97,7 @@ export default function App(){
           <div className="severity">{[['Critique',dashboard.vulnerabilities.critical,'red'],['Élevée',dashboard.vulnerabilities.high,'orange'],['Modérée',dashboard.vulnerabilities.moderate,'gold'],['Faible',dashboard.vulnerabilities.low,'blue']].map(([n,v,c])=><div className="sev" key={n}><div className="sev-label"><span className={`sev-dot ${c}`}/>{n}<b>{v}</b></div><div className="bar"><span className={String(c)} style={{width:`${vulnerabilitiesTotal(dashboard)?Math.round(Number(v)/vulnerabilitiesTotal(dashboard)*100):0}%`}}/></div></div>)}</div>
           <div className="lower analytics-grid"><div className="panel chart-panel"><div className="panel-head"><div><h3>Évolution des audits</h3><p>Audits clôturés par mois · période de 6 mois</p></div><span className="chart-unit">AUDITS / MOIS</span></div>{preview?<AuditTrendChart/>:<div className="chart-empty"><Activity size={22}/><b>Historique non disponible</b><span>L’API doit fournir les séries temporelles pour tracer une tendance fiable.</span></div>}<div className="panel-foot"><span><i className={preview?'':'green-bg'}/>{preview?'SÉRIE DE DÉMONSTRATION':'HISTORIQUE API'}</span><span>{preview?'96 audits simulés':`${dashboard.audited_applications} audits réalisés`}</span></div></div><div className="panel chart-panel"><div className="panel-head"><div><h3>Répartition des constats</h3><p>Part de chaque niveau de sévérité</p></div><span className="chart-unit">{vulnerabilitiesTotal(dashboard)} CONSTATS</span></div><SeverityChart data={dashboard.vulnerabilities}/><div className="panel-foot"><span><i className={preview?'':'green-bg'}/>{preview?'JEU DE DONNÉES SIMULÉ':'DONNÉES API'}</span><span>Critique → faible</span></div></div></div>
         </>:active==='Rapports'?<ReportsPage data={dashboard} demo={preview}/>:<ModulePage name={active} description={descriptions[active]||'Cette section sera disponible dans une prochaine phase.'} onBack={()=>selectPage('Vue d’ensemble')}/>}
-        <footer><span>PHP-SHIELD RDC <i>·</i> Produit proposé pour évaluation technique</span><span><Shield size={13}/> ENVIRONNEMENT NON PRODUCTION</span></footer>
+        <footer className="app-footer"><span className="footer-project"><strong>PHP-SHIELD RDC</strong><small>Projet proposé pour évaluation technique</small></span><span className="founder-signature"><small>CONCEPTION, FONDATION &amp; PROPRIÉTÉ DU PROJET</small><b>LOKALA LOMBOTO Jonathan</b></span><span><Shield size={13}/> ENVIRONNEMENT NON PRODUCTION</span></footer>
       </div>
     </main>
     {installHelp&&<InstallDialog onClose={()=>setInstallHelp(false)}/>}
@@ -129,11 +129,50 @@ function ReportsPage({data,demo}:{data:ReportData;demo:boolean}){
   </section>
 }
 
+const projectDocuments = [
+  {
+    filename: 'PHP-SHIELD-RDC-Presentation-du-projet.pdf',
+    title: 'Présentation du projet',
+    description: 'Vision, architecture et feuille de route',
+    Icon: FileText,
+  },
+  {
+    filename: 'PHP-SHIELD-RDC-Manuel-d-utilisation.pdf',
+    title: 'Manuel d’utilisation',
+    description: 'Connexion, navigation et rapports pas à pas',
+    Icon: BookOpen,
+  },
+]
+
+function LoginDocuments() {
+  return (
+    <section className="login-documents" aria-labelledby="login-documents-title">
+      <div className="login-documents-heading">
+        <h2 id="login-documents-title">Documentation du projet</h2>
+        <span>2 PDF</span>
+      </div>
+      <ul className="login-document-list">
+        {projectDocuments.map(({ filename, title, description, Icon }) => (
+          <li key={filename}>
+            <a href={`${import.meta.env.BASE_URL}documents/${filename}`} download={filename}>
+              <span className="document-icon" aria-hidden="true"><Icon size={19}/></span>
+              <span className="document-copy"><strong>{title}</strong><small>{description}</small></span>
+              <span className="document-download" aria-hidden="true"><Download size={17}/></span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 function LoginPage({apiRoot,online,theme,onToggleTheme,onLogin,onPreview,onInstall,installed}:{apiRoot:string;online:boolean;theme:'dark'|'light';onToggleTheme:()=>void;onLogin:(user:User)=>void;onPreview:()=>void;onInstall:()=>void;installed:boolean}){
   const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[showPassword,setShowPassword]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('')
   const submit=async(e:FormEvent)=>{e.preventDefault();setError('');const normalizedEmail=email.trim().toLowerCase(),normalizedPassword=password.trim().toUpperCase();if(normalizedEmail==='demo@php-shield.cd'&&normalizedPassword==='RDC-DEMO-2026'){onPreview();return}if(!online){if(normalizedEmail&&normalizedPassword){onPreview();return}setError('Saisissez un identifiant et un mot de passe pour ouvrir l’aperçu public en lecture seule.');return}setBusy(true);try{const response=await fetch(`${apiRoot}/auth/login`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:normalizedEmail,password})});if(!response.ok){const result=await response.json().catch(()=>({}));throw new Error(response.status===401?'Adresse ou mot de passe incorrect.':result.detail||'Connexion impossible.')}onLogin(await response.json())}catch(err){setError(err instanceof Error?err.message:'Service de connexion indisponible.');}finally{setBusy(false)}}
   return <div className="login-page"><section className="login-identity"><div className="login-brand"><img src={`${import.meta.env.BASE_URL}assets/app-icon.svg`} alt="Emblème du Gouvernement de la République démocratique du Congo"/><div><span>RÉPUBLIQUE DÉMOCRATIQUE DU CONGO</span><b>PHP-SHIELD <i>RDC</i></b></div></div><div className="identity-content"><div className="identity-rule"><span/> PORTAIL INSTITUTIONNEL · ACCÈS SÉCURISÉ <span/></div><h1>Protéger.<br/><em>Anticiper.</em><br/>Renforcer.</h1><p>La sécurité applicative au service d’une infrastructure numérique résiliente.</p><div className="identity-seal"><img src={`${import.meta.env.BASE_URL}assets/app-icon.svg`} alt=""/><span>ESPACE NATIONAL<br/>DE CYBER-RÉSILIENCE</span></div></div><div className="login-footer">DANTIC · DIVISION BASES DE DONNÉES <span>PLATEFORME DE GOUVERNANCE CYBERNÉTIQUE</span></div></section>
-    <section className="login-panel"><div className="login-panel-top"><span className={`connection ${online?'online':''}`}><i/>{online?'SERVICE D’AUTHENTIFICATION DISPONIBLE':'API NON CONNECTÉE'}</span><div className="login-panel-actions"><button className="icon-btn theme-toggle" onClick={onToggleTheme} aria-label={theme==='dark'?'Activer le mode clair':'Activer le mode sombre'} title={theme==='dark'?'Mode clair':'Mode sombre'}>{theme==='dark'?<Sun size={17}/>:<Moon size={17}/>}</button><button className="install-button login-install" onClick={onInstall} disabled={installed}>{installed?<Check size={15}/>:<Download size={15}/>}<span>{installed?'Installée':'Installer la PWA'}</span></button></div></div><div className="login-card"><div className="login-kicker"><LockKeyhole size={15}/> ESPACE RÉSERVÉ</div><h2>Connexion</h2><p className="login-intro">Accédez à votre espace de supervision sécurisé.</p><form onSubmit={submit} noValidate><label htmlFor="login-email">Adresse professionnelle</label><div className="login-input"><Users size={16}/><input id="login-email" type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="nom@institution.cd"/></div><div className="password-label"><label htmlFor="login-password">Mot de passe</label><button type="button" className="forgot-link" onClick={()=>setError('Pour réinitialiser un accès, contactez votre administrateur. Aucun lien de réinitialisation n’est configuré.')}>Accès oublié ?</button></div><div className="login-input"><LockKeyhole size={16}/><input id="login-password" type={showPassword?'text':'password'} autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="Votre mot de passe"/><button type="button" className="reveal-password" aria-label={showPassword?'Masquer le mot de passe':'Afficher le mot de passe'} onClick={()=>setShowPassword(!showPassword)}>{showPassword?<EyeOff size={16}/>:<Eye size={16}/>}</button></div>{error&&<div className="login-error" role="alert"><AlertTriangle size={15}/><span>{error}</span></div>}<button className="login-submit" type="submit" disabled={busy}>{busy?<><Activity size={16}/> Vérification sécurisée…</>:<>Ouvrir ma session <span>→</span></>}</button></form><div className="login-security"><ShieldCheck size={16}/><span>Les identifiants démo ouvrent un aperçu en lecture seule, sans données de sécurité.</span></div><div className="demo-credentials"><b>ACCÈS DÉMO · LECTURE SEULE</b><span>Identifiant <code>demo@php-shield.cd</code></span><span>Mot de passe <code>RDC-DEMO-2026</code></span><button className="preview-link" onClick={onPreview}>Ouvrir l’aperçu public</button></div></div><div className="login-bottom"><span>Accès réservé au personnel autorisé</span><button onClick={()=>onPreview()}>À propos de PHP-SHIELD RDC</button></div></section></div>
+    <section className="login-panel"><div className="login-panel-top"><span className={`connection ${online?'online':''}`}><i/>{online?'SERVICE D’AUTHENTIFICATION DISPONIBLE':'API NON CONNECTÉE'}</span><div className="login-panel-actions"><button className="icon-btn theme-toggle" onClick={onToggleTheme} aria-label={theme==='dark'?'Activer le mode clair':'Activer le mode sombre'} title={theme==='dark'?'Mode clair':'Mode sombre'}>{theme==='dark'?<Sun size={17}/>:<Moon size={17}/>}</button><button className="install-button login-install" onClick={onInstall} disabled={installed}>{installed?<Check size={15}/>:<Download size={15}/>}<span>{installed?'Installée':'Installer la PWA'}</span></button></div></div>
+      <div className="login-stack"><div className="login-card"><div className="login-kicker"><LockKeyhole size={15}/> ESPACE RÉSERVÉ</div><h2>Connexion</h2><p className="login-intro">Accédez à votre espace de supervision sécurisé.</p><form onSubmit={submit} noValidate><label htmlFor="login-email">Adresse professionnelle</label><div className="login-input"><Users size={16}/><input id="login-email" type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="nom@institution.cd"/></div><div className="password-label"><label htmlFor="login-password">Mot de passe</label><button type="button" className="forgot-link" onClick={()=>setError('Pour réinitialiser un accès, contactez votre administrateur. Aucun lien de réinitialisation n’est configuré.')}>Accès oublié ?</button></div><div className="login-input"><LockKeyhole size={16}/><input id="login-password" type={showPassword?'text':'password'} autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="Votre mot de passe"/><button type="button" className="reveal-password" aria-label={showPassword?'Masquer le mot de passe':'Afficher le mot de passe'} onClick={()=>setShowPassword(!showPassword)}>{showPassword?<EyeOff size={16}/>:<Eye size={16}/>}</button></div>{error&&<div className="login-error" role="alert"><AlertTriangle size={15}/><span>{error}</span></div>}<button className="login-submit" type="submit" disabled={busy}>{busy?<><Activity size={16}/> Vérification sécurisée…</>:<>Ouvrir ma session <span>→</span></>}</button></form><div className="login-security"><ShieldCheck size={16}/><span>Les identifiants démo ouvrent un aperçu en lecture seule, sans données de sécurité.</span></div><div className="demo-credentials"><b>ACCÈS DÉMO · LECTURE SEULE</b><span>Identifiant <code>demo@php-shield.cd</code></span><span>Mot de passe <code>RDC-DEMO-2026</code></span><button className="preview-link" onClick={onPreview}>Ouvrir l’aperçu public</button></div></div><LoginDocuments/></div>
+      <div className="login-bottom"><span>Accès réservé au personnel autorisé</span><button onClick={()=>onPreview()}>À propos de PHP-SHIELD RDC</button></div></section></div>
 }
 
 function AuditTrendChart(){

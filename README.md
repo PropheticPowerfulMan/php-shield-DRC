@@ -8,6 +8,12 @@ Fondation initiale : application React/Vite, API FastAPI, modèle de données SQ
 
 L'emblème fourni par le propriétaire est attendu dans `frontend/public/assets/drc-government-emblem.png`. Il est utilisé sans modification. S'il manque, l'interface affiche une marque typographique.
 
+## Documentation publique
+
+La présentation du projet et le manuel d’utilisation sont téléchargeables en PDF depuis l’écran de connexion de l’[aperçu public](https://propheticpowerfulman.github.io/php-shield-DRC/). Les fichiers servis par l’application se trouvent dans `frontend/public/documents/`.
+
+Sur Windows, `python tools/generate_project_documents.py --document manual` régénère le guide avec ReportLab. Pour une édition avec captures, placez `01-login.png`, `02-overview.png`, `03-module.png` et `04-reports.png` dans `tmp/pdfs/screenshots/`, puis ajoutez `--require-screenshots` à la commande.
+
 ## Prérequis
 
 Docker et Docker Compose, ou Python 3.11+ avec PostgreSQL/Redis et Node.js 20+.
